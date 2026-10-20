@@ -1,4 +1,4 @@
-# NEON SLICE 🍉⚡
+# NEON SLICE
 
 Un juego 2D de **cortar fruta** al estilo Fruit Ninja: desliza el ratón o el dedo para
 trazar tu cuchilla neón, encadena cortes para multiplicar la puntuación y esquiva las bombas.
