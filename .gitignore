@@ -1,5 +1,27 @@
-﻿shots/
+shots/
 __shot.png
 shotserver.mjs
 .DS_Store
 Thumbs.db
+
+# Dependencias y artefactos
+node_modules/
+dist/
+coverage/
+
+# Entorno y secretos
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# Despliegue
+.vercel/
+
+# Editores
+.vscode/
+.idea/
+*.swp

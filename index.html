@@ -2,9 +2,26 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#150d3a">
-<title>NEON SLICE — corta y enchaina</title>
+<meta name="color-scheme" content="dark">
+<meta name="description" content="NEON SLICE: juego 2D de cortar fruta en HTML5 Canvas. Encadena cortes para multiplicar hasta x5, activa el Frenesí x2 con la fruta dorada y esquiva las bombas. Un solo HTML, sin dependencias.">
+<link rel="canonical" href="https://byilias29-max.github.io/neon-slice/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="NEON SLICE">
+<meta property="og:title" content="NEON SLICE — corta y encadena">
+<meta property="og:description" content="Juego 2D de cortar fruta: desliza la cuchilla neón, encadena cortes hasta x5 y activa el Frenesí x2 con la fruta dorada.">
+<meta property="og:url" content="https://byilias29-max.github.io/neon-slice/">
+<meta property="og:image" content="https://byilias29-max.github.io/neon-slice/img/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:type" content="image/png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="NEON SLICE — corta y encadena">
+<meta name="twitter:description" content="Juego 2D de cortar fruta en Canvas: rachas x5, Frenesí x2 y 6 frutas.">
+<meta name="twitter:image" content="https://byilias29-max.github.io/neon-slice/img/og.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23150d3a'/%3E%3Ccircle cx='32' cy='38' r='16' fill='%23ff4f70'/%3E%3Cpath d='M8 12 L56 52' stroke='%2327e6ff' stroke-width='7' stroke-linecap='round'/%3E%3C/svg%3E">
+<title>NEON SLICE — corta y encadena</title>
 <style>
 :root{
   --hot:#ff5a7a; --cyan:#27e6ff; --gold:#ffd24a; --ink:#fff7ea;
@@ -12,14 +29,18 @@
   --sat:env(safe-area-inset-top,0px); --sab:env(safe-area-inset-bottom,0px);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:2px solid #27e6ff;outline-offset:2px}
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;
+  clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}
 html,body{height:100%;margin:0;overflow:hidden;background:#0a0620;color:var(--ink);
   font:15px/1.45 "Trebuchet MS","Segoe UI",system-ui,sans-serif;
   touch-action:none;overscroll-behavior:none;user-select:none;-webkit-user-select:none}
 #c{position:fixed;inset:0;display:block;touch-action:none;cursor:crosshair}
 
 /* ---------- HUD ---------- */
-#hud{position:fixed;inset:0;pointer-events:none;z-index:2;opacity:0;transition:opacity .35s}
-#hud.on{opacity:1}
+#hud{position:fixed;inset:0;pointer-events:none;z-index:2;opacity:0;visibility:hidden;
+  transition:opacity .35s,visibility 0s linear .35s}
+#hud.on{opacity:1;visibility:visible;transition:opacity .35s,visibility 0s}
 .box{position:absolute;background:var(--glass);border:1px solid #ffffff26;border-radius:14px;
   padding:8px 14px;backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);
   box-shadow:0 10px 30px #00000055}
@@ -33,7 +54,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:#0a0620;color:var(--in
 #timeTxt{font-size:26px;font-weight:800;font-style:italic}
 #timeBar{height:7px;margin-top:4px;border-radius:4px;background:#0006;overflow:hidden}
 #timeBar i{display:block;height:100%;width:100%;background:linear-gradient(90deg,var(--cyan),var(--hot));
-  border-radius:4px;transition:width .2s linear}
+  border-radius:4px}
 #rightBox{right:14px;top:calc(14px + var(--sat));text-align:center}
 #lives{font-size:26px;letter-spacing:4px;line-height:1.2}
 #lives .h{filter:drop-shadow(0 0 6px #ff5a7a88)}
@@ -43,9 +64,11 @@ html,body{height:100%;margin:0;overflow:hidden;background:#0a0620;color:var(--in
 #chain.pop{transform:scale(1.35)}
 #mute{position:fixed;right:14px;bottom:calc(14px + var(--sab));z-index:6;width:44px;height:44px;
   border-radius:50%;background:var(--glass);border:1px solid #ffffff2e;color:var(--ink);
-  font-size:19px;cursor:pointer;display:flex;align-items:center;justify-content:center;
-  backdrop-filter:blur(7px)}
+  font:inherit;font-size:19px;line-height:1;padding:0;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  -webkit-appearance:none;appearance:none;
+  backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px)}
 #mute:active{transform:scale(.92)}
+#mute:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
 
 /* ---------- overlays ---------- */
 .screen{position:fixed;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;
@@ -56,7 +79,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:#0a0620;color:var(--in
   padding:26px 24px;text-align:center;box-shadow:0 24px 80px #000a,0 0 0 1px #ffffff0d inset;
   animation:pop .32s cubic-bezier(.2,1.4,.4,1) both}
 @keyframes pop{from{transform:scale(.86) translateY(14px);opacity:0}to{transform:none;opacity:1}}
-h1{margin:0;font-size:clamp(40px,10vw,74px);font-style:italic;font-weight:800;letter-spacing:-.02em;
+h1,.h-title{margin:0;font-size:clamp(40px,10vw,74px);font-style:italic;font-weight:800;letter-spacing:-.02em;
   background:linear-gradient(92deg,#ff5a7a,#ff8a3a 40%,#27e6ff 100%);-webkit-background-clip:text;
   background-clip:text;color:transparent;filter:drop-shadow(0 4px 0 #5b2a86)}
 .tagline{margin:4px 0 0;color:var(--gold);font-weight:700;letter-spacing:3px;font-size:12px}
@@ -99,26 +122,29 @@ h1{margin:0;font-size:clamp(40px,10vw,74px);font-style:italic;font-weight:800;le
 <body>
 <canvas id="c"></canvas>
 
+<noscript><div style="padding:2rem;font:1rem/1.5 system-ui,sans-serif;color:#fff;background:#0a0620;position:relative;z-index:99">
+  Este juego necesita JavaScript activado.</div></noscript>
+
 <div id="hud">
   <div class="box" id="scoreBox">
     <div class="lbl">PUNTOS</div>
-    <div id="score">0</div>
+    <div id="score" role="status" aria-live="polite" aria-atomic="true"><span class="sr-only">Puntuación: </span><span id="scoreVal">0</span></div>
     <div class="rec">RÉCORD <b id="best">0</b></div>
   </div>
   <div class="box" id="timeBox">
-    <div id="timeTxt">75</div>
-    <div id="timeBar"><i></i></div>
+    <div id="timeTxt" role="timer" aria-live="off" aria-label="Tiempo restante"><span class="sr-only">Tiempo restante: </span><span id="timeVal">75</span></div>
+    <div id="timeBar" aria-hidden="true"><i></i></div>
   </div>
   <div class="box" id="rightBox">
-    <div id="lives"></div>
-    <div id="chain"></div>
+    <div id="lives" role="status" aria-live="polite" aria-atomic="true"><span class="sr-only" id="livesTxt">Vidas: 3</span><span aria-hidden="true" id="livesIcons"></span></div>
+    <div id="chain" role="status" aria-live="polite" aria-atomic="true"></div>
   </div>
 </div>
 
-<div id="mute" title="Silenciar (M)">🔊</div>
-<div id="tip"></div>
+<button id="mute" type="button" aria-label="Silenciar" aria-pressed="false" title="Silenciar (M)">🔊</button>
+<div id="tip" role="status" aria-live="polite"></div>
 
-<div class="screen" id="menu">
+<div class="screen" id="menu" role="dialog" aria-label="Menú de NEON SLICE">
   <div class="panel">
     <h1>NEON SLICE</h1>
     <p class="tagline">CORTA · ENCHAINA · ENFRÉNTATE</p>
@@ -130,24 +156,24 @@ h1{margin:0;font-size:clamp(40px,10vw,74px);font-style:italic;font-weight:800;le
       <div><i>💣</i><span><b>Las bombas</b> quitan una vida y rompen tu racha. 3 vidas, sin tregua.</span></div>
       <div><i>⭐</i><span><b>Racha ×5</b> con cortes seguidos. La <b>fruta dorada</b> activa el Frenesí: puntos x2.</span></div>
     </div>
-    <button class="btn" id="btnPlay">¡JUGAR!</button>
+    <button class="btn" id="btnPlay" type="button">¡JUGAR!</button>
     <div class="keys"><span class="kbd">ESPACIO</span> jugar · <span class="kbd">P</span> pausa ·
       <span class="kbd">R</span> reiniciar · <span class="kbd">M</span> sonido</div>
   </div>
 </div>
 
-<div class="screen hidden" id="pause">
+<div class="screen hidden" id="pause" role="dialog" aria-modal="true" aria-label="Partida en pausa">
   <div class="panel">
-    <h1 style="font-size:clamp(32px,8vw,54px)">PAUSA</h1>
+    <h2 class="h-title" style="font-size:clamp(32px,8vw,54px)">PAUSA</h2>
     <p class="tagline">RESPIRA UN MOMENTO</p>
     <div class="btnrow" style="margin-top:22px">
-      <button class="btn" id="btnResume">CONTINUAR</button>
-      <button class="btn ghost" id="btnQuit">SALIR</button>
+      <button class="btn" id="btnResume" type="button">CONTINUAR</button>
+      <button class="btn ghost" id="btnQuit" type="button">SALIR</button>
     </div>
   </div>
 </div>
 
-<div class="screen hidden" id="over">
+<div class="screen hidden" id="over" role="dialog" aria-modal="true" aria-label="Fin de la partida">
   <div class="panel">
     <div class="medal" id="medal">—</div>
     <h2 id="overTitle" style="margin:2px 0 4px;font-size:clamp(20px,5vw,30px);font-style:italic;letter-spacing:2px;color:#ff8aef">¡GAME OVER!</h2>
@@ -161,8 +187,9 @@ h1{margin:0;font-size:clamp(40px,10vw,74px);font-style:italic;font-weight:800;le
       <div class="stat"><b id="statGolden">0</b><span>DORADAS</span></div>
     </div>
     <div class="btnrow" style="margin-top:22px">
-      <button class="btn" id="btnAgain">OTRA VEZ</button>
-      <button class="btn ghost" id="btnMenu">MENÚ</button>
+      <button class="btn" id="btnAgain" type="button">OTRA VEZ</button>
+      <button class="btn ghost" id="btnMenu" type="button">MENÚ</button>
+      <button class="btn ghost" id="btnClearRec" type="button">BORRAR RÉCORD</button>
     </div>
   </div>
 </div>
@@ -187,6 +214,7 @@ const CHAIN_MAX = 5;                 // multiplicador máximo de racha
 const FRENZY_TIME = 8;
 const BASE_POINTS = 10;
 const BEST_KEY = 'neonslice.best.v1';
+const MUTE_KEY = 'neonslice.muted';
 const MEDALS = [
   { min:10000, label:'🥇 MEDALLA DE ORO',  color:'#ffd24a' },
   { min:4000,  label:'🥈 MEDALLA DE PLATA', color:'#dfe7ff' },
@@ -210,6 +238,7 @@ const S = {
   score:0, best:0, chain:0, chainT:0, maxChain:0, lives:3,
   time:ROUND_TIME, frenzy:0, cuts:0, goldens:0, dying:false,
   shake:0, flash:0, flashCol:'#ff2e63', hitstop:0, elapsed:0,
+  round:0,                // token de ronda: distingue partidas reiniciadas
 };
 
 const fruits = [], parts = [], pops = [], splats = [], rings = [], stars = [];
@@ -230,9 +259,10 @@ const AU = (() => {
   let muted=false, timer=null, nextT=0, step=0;
   const BPM=126, STEP=60/BPM/2;
   const PROG=[[57,60,64],[53,57,60],[48,52,55],[55,59,62]];
+  try{ muted = localStorage.getItem(MUTE_KEY)==='1'; }catch(e){ muted=false; }
 
   function ensure(){
-    if(ctx){ if(ctx.state==='suspended') ctx.resume(); return ctx; }
+    if(ctx){ if(ctx.state==='suspended'){ const p=ctx.resume(); if(p&&p.catch) p.catch(()=>{}); } return ctx; }
     const AC = window.AudioContext||window.webkitAudioContext;
     if(!AC) return null;
     ctx = new AC();
@@ -282,6 +312,7 @@ const AU = (() => {
     toggle(){
       muted=!muted;
       if(master) master.gain.value = muted?0:0.85;
+      try{ localStorage.setItem(MUTE_KEY, muted?'1':'0'); }catch(e){}
       return muted;
     },
     slice(n){
@@ -372,8 +403,9 @@ resize();
 // ============================================================
 const el = id => document.getElementById(id);
 const ui = {
-  hud:el('hud'), score:el('score'), best:el('best'), timeTxt:el('timeTxt'),
-  timeBar:el('timeBar').firstElementChild, lives:el('lives'), chain:el('chain'),
+  hud:el('hud'), score:el('score'), scoreVal:el('scoreVal'), best:el('best'),
+  timeTxt:el('timeTxt'), timeVal:el('timeVal'), timeBar:el('timeBar').firstElementChild,
+  lives:el('lives'), livesIcons:el('livesIcons'), livesTxt:el('livesTxt'), chain:el('chain'),
   menu:el('menu'), pause:el('pause'), over:el('over'),
   finalScore:el('finalScore'), statBest:el('statBest'), statCuts:el('statCuts'),
   statCombo:el('statCombo'), statGolden:el('statGolden'), medal:el('medal'),
@@ -383,16 +415,19 @@ const ui = {
 function drawLives(){
   let s='';
   for(let i=0;i<3;i++) s += `<span class="h${i<S.lives?'':' off'}">♥</span>`;
-  ui.lives.innerHTML = s;
+  ui.livesIcons.innerHTML = s;
+  ui.livesTxt.textContent = 'Vidas: '+S.lives;
 }
-let lastScore=-1, lastTime=-1, lastChain=-1;
-function syncHud(){
-  if(S.score!==lastScore){ ui.score.textContent=S.score; lastScore=S.score; }
-  if(S.time!==lastTime){
-    lastTime = S.time;
-    ui.timeTxt.textContent = Math.max(0,Math.ceil(S.time));
-    ui.timeBar.style.width = clamp(S.time/ROUND_TIME*100,0,100)+'%';
-  }
+let lastScore=-1, lastSecs=-1, lastChain=-1, lastBarW=-1, hudT=0;
+function syncHud(dt, force){
+  // El HUD se refresca a ~10 Hz: reescribirlo a 120 Hz compite con el CSS y lo hace parpadear.
+  if(!force){ hudT += (dt||0); if(hudT < 0.1) return; }
+  hudT = 0;
+  if(S.score!==lastScore){ ui.scoreVal.textContent=S.score; lastScore=S.score; }
+  const secs = Math.max(0, Math.ceil(S.time));
+  if(secs!==lastSecs){ lastSecs=secs; ui.timeVal.textContent=secs; }
+  const w = clamp(S.time/ROUND_TIME*100,0,100);
+  if(w!==lastBarW){ lastBarW=w; ui.timeBar.style.width=w+'%'; }
   if(S.chain!==lastChain){
     lastChain = S.chain;
     ui.chain.textContent = S.chain>1 ? '×'+S.chain : '';
@@ -409,24 +444,42 @@ function show(screen){
   ui.pause.classList.toggle('hidden', screen!=='pause');
   ui.over.classList.toggle('hidden', screen!=='over');
   ui.hud.classList.toggle('on', screen==='play'||screen==='pause');
+  // el foco va al botón principal de la pantalla visible (teclado y lectores de pantalla)
+  const btn = screen==='menu' ? el('btnPlay')
+            : screen==='pause' ? el('btnResume')
+            : screen==='over' ? el('btnAgain') : null;
+  if(btn){
+    try{ btn.focus({preventScroll:true}); }catch(e){ try{ btn.focus(); }catch(e2){} }
+  }else if(document.activeElement && document.activeElement.blur){
+    document.activeElement.blur();
+  }
 }
 function startGame(){
+  S.round = (S.round||0)+1;          // token de ronda: invalida los temporizadores viejos
   S.state='play'; S.score=0; S.chain=0; S.chainT=0; S.maxChain=0; S.lives=3;
   S.time=ROUND_TIME; S.frenzy=0; S.cuts=0; S.goldens=0; S.shake=0; S.flash=0; S.hitstop=0;
   S.dying=false;
   S.elapsed=0; spawnT=0.4;
   fruits.length=0; parts.length=0; pops.length=0; splats.length=0; rings.length=0; stars.length=0;
   trail.length=0; swipeCuts=0;
-  lastScore=-1; lastTime=-1; lastChain=-1;
+  pointerId=null; swipeActive=false; lastCut=null;   // la ronda nueva no hereda el puntero ni el último corte
+  lastScore=-1; lastSecs=-1; lastChain=-1; lastBarW=-1; hudT=0;
   drawLives(); show('play');
+  syncHud(0,true);
   AU.unlock(); AU.start();
   say('¡Desliza para cortar!', 2.2);
 }
-function pauseGame(){ if(S.state!=='play') return; S.state='pause'; show('pause'); AU.stop(); }
-function resumeGame(){ if(S.state!=='pause') return; S.state='play'; show('play'); AU.start(); }
+function pauseGame(){
+  // Durante la muerte no se permite pausar: el "game over" pendiente debe completarse siempre.
+  if(S.state!=='play' || S.dying) return;
+  if(swipeActive){ swipeActive=false; pointerId=null; endSwipe(); }
+  S.state='pause'; show('pause'); AU.stop();
+}
+function resumeGame(){ if(S.state!=='pause') return; S.dying=false; S.state='play'; show('play'); AU.start(); }
 function gameOver(reason){
   S.state='over'; AU.stop(); AU.over();
   trail.length=0;
+  swipeActive=false; pointerId=null; swipeCuts=0;
   const sc = S.score;
   const isRec = sc > S.best;
   if(isRec){ S.best = sc; try{ localStorage.setItem(BEST_KEY, String(sc)); }catch(e){} }
@@ -487,14 +540,26 @@ function onUp(e){
   swipeActive=false; pointerId=null;
   endSwipe();
 }
+// Si se pierde el puntero (el ratón se soltó fuera de la ventana, gesto del SO…),
+// hay que liberar el estado: si no, todos los pointerdown posteriores se ignoran.
+function onLostCapture(e){
+  if(pointerId===null || e.pointerId!==pointerId) return;
+  swipeActive=false; pointerId=null;
+  endSwipe();
+}
 cv.addEventListener('pointerdown', onDown);
 addEventListener('pointermove', onMove, {passive:false});
 addEventListener('pointerup', onUp);
 addEventListener('pointercancel', onUp);
+cv.addEventListener('lostpointercapture', onLostCapture);
 cv.addEventListener('contextmenu', e=>e.preventDefault());
 
 addEventListener('keydown', e=>{
   const k = e.key.toLowerCase();
+  // Si el foco está en un control, espacio y enter le corresponden a ese control.
+  const t = e.target;
+  const inControl = !!(t && t.closest && t.closest('button,a,input,select,textarea'));
+  if(inControl && (k===' '||k==='enter')) return;
   if(k===' '||k==='enter'){
     e.preventDefault();
     if(S.state==='menu'||S.state==='over') startGame();
@@ -508,6 +573,9 @@ addEventListener('keydown', e=>{
 function toggleMute(){
   const m = AU.toggle();
   ui.mute.textContent = m ? '🔇' : '🔊';
+  ui.mute.setAttribute('aria-pressed', m ? 'true' : 'false');
+  ui.mute.setAttribute('aria-label', m ? 'Activar sonido' : 'Silenciar');
+  say(m ? 'Sonido silenciado' : 'Sonido activado', 1.2);
 }
 ui.mute.addEventListener('click', toggleMute);
 el('btnPlay').addEventListener('click', startGame);
@@ -515,8 +583,23 @@ el('btnAgain').addEventListener('click', startGame);
 el('btnResume').addEventListener('click', resumeGame);
 el('btnQuit').addEventListener('click', toMenu);
 el('btnMenu').addEventListener('click', toMenu);
+el('btnClearRec').addEventListener('click', ()=>{
+  try{ localStorage.removeItem(BEST_KEY); }catch(e){}
+  S.best = 0;
+  ui.best.textContent = 0;
+  ui.statBest.textContent = 0;
+  ui.newRec.style.display = 'none';
+  const b = el('btnClearRec'), txt = b.textContent;
+  b.textContent = 'RÉCORD BORRADO';
+  setTimeout(()=>{ b.textContent = txt; }, 1600);
+});
 document.addEventListener('visibilitychange', ()=>{ if(document.hidden) pauseGame(); });
 addEventListener('blur', ()=>{ if(S.state==='play') pauseGame(); });
+// En vertical el juego no se puede jugar: se pausa la partida en vez de solo taparla.
+const portraitMQ = matchMedia('(max-width:820px) and (orientation:portrait)');
+function onPortrait(e){ if(e.matches) pauseGame(); }
+if(portraitMQ.addEventListener) portraitMQ.addEventListener('change', onPortrait);
+else if(portraitMQ.addListener) portraitMQ.addListener(onPortrait);
 
 // ============================================================
 // ENTIDADES
@@ -618,6 +701,11 @@ function update(dt){
     s:rnd(0.3,1.4), p:rnd(0,6.28)});
   for(const s of stars){ s.p += dt*2.2; s.y += dt*4*s.s; if(s.y>H+4){ s.y=-4; s.x=rnd(0,W);} }
 
+  // La sacudida y el destello se desvanecen siempre, también durante los 480 ms de muerte:
+  // si no, la pantalla se queda en rosa y la cámara vibra sin desvanecerse.
+  if(S.shake>0) S.shake = Math.max(0, S.shake - dt*3.2);
+  if(S.flash>0) S.flash = Math.max(0, S.flash - dt*2.6);
+
   if(S.state!=='play') { updateFx(dt); return; }
   if(S.dying){ updateFx(dt); return; }        // morir: la partida queda congelada
 
@@ -634,8 +722,6 @@ function update(dt){
     S.chainT -= dt;
     if(S.chainT<=0){ S.chain=0; }
   }
-  if(S.shake>0) S.shake = Math.max(0, S.shake - dt*3.2);
-  if(S.flash>0) S.flash = Math.max(0, S.flash - dt*2.6);
 
   // aparición
   spawnT -= dt;
@@ -660,6 +746,11 @@ function update(dt){
     if(f.cut || f.y-f.r > H+80) fruits.splice(i,1);
   }
 
+  // La estela se poda por edad (420 ms) antes de colisionar: si no, un tramo viejo
+  // puede seguir cortando fruta durante su ventana de vida.
+  const now = performance.now();
+  while(trail.length && now-trail[0].t>420) trail.shift();
+
   // detección de cortes con la estela
   if(trail.length>1){
     for(let i=1;i<trail.length;i++){
@@ -673,14 +764,13 @@ function update(dt){
   }
 
   updateFx(dt);
-  syncHud();
+  syncHud(dt);
 }
 
 function cutFruit(f){
   if(S.dying) return;
   f.cut = true;
   S.cuts++;
-  swipeCuts++;
 
   if(f.kind==='bomb'){
     S.lives = Math.max(0, S.lives-1);
@@ -699,10 +789,13 @@ function cutFruit(f){
     drawLives();
     if(S.lives<=0){
       S.dying = true;                       // congela la partida durante la explosión
-      setTimeout(()=>{ if(S.state==='play') gameOver('lives'); }, 480);
+      const round = S.round;                // token de ronda: si se reinicia, este temporizador es viejo
+      setTimeout(()=>{ if(S.state==='play' && S.round===round) gameOver('lives'); }, 480);
     }
     return;
   }
+
+  swipeCuts++;                              // solo la fruta cuenta para el bonus de combo
 
   // puntos + racha
   S.chain = S.chain>0 ? Math.min(CHAIN_MAX, S.chain+1) : 1;
@@ -740,6 +833,8 @@ function cutFruit(f){
 
 // Bonificación por corte múltiple: se aplica una sola vez al soltar el dedo
 function endSwipe(){
+  // Si la partida ya terminó, el bonus no se suma: el game over ya guardó la puntuación.
+  if(S.state!=='play'){ swipeCuts=0; return; }
   if(swipeCuts>=2){
     const bonus = 25*(swipeCuts-1);
     S.score += bonus;
@@ -1007,19 +1102,20 @@ function render(){
     ctx.setTransform(DPR,0,0,DPR,0,0);
     ctx.globalAlpha = S.flash*0.42;
     ctx.fillStyle = S.flashCol;
-    ctx.fillRect(0,0,cv.width,cv.height);
+    ctx.fillRect(0,0,cv.width/DPR,cv.height/DPR);
     ctx.globalAlpha=1;
   }
   // viñeta (cacheada: solo depende del tamaño del canvas)
   ctx.setTransform(DPR,0,0,DPR,0,0);
-  if(!vignette || vignette.w!==cv.width || vignette.h!==cv.height){
-    vignette = {w:cv.width, h:cv.height, g:null};
-    const vg = ctx.createRadialGradient(cv.width/2,cv.height/2, Math.min(cv.width,cv.height)*0.35,
-                                         cv.width/2,cv.height/2, Math.max(cv.width,cv.height)*0.75);
+  const cw = cv.width/DPR, ch = cv.height/DPR;
+  if(!vignette || vignette.w!==cw || vignette.h!==ch){
+    vignette = {w:cw, h:ch, g:null};
+    const vg = ctx.createRadialGradient(cw/2,ch/2, Math.min(cw,ch)*0.35,
+                                         cw/2,ch/2, Math.max(cw,ch)*0.75);
     vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,.55)');
     vignette.g = vg;
   }
-  ctx.fillStyle = vignette.g; ctx.fillRect(0,0,cv.width,cv.height);
+  ctx.fillStyle = vignette.g; ctx.fillRect(0,0,cw,ch);
 }
 
 // ============================================================
@@ -1045,11 +1141,18 @@ requestAnimationFrame(frame);
 try{ S.best = parseInt(localStorage.getItem(BEST_KEY)||'0',10) || 0; }catch(e){ S.best=0; }
 ui.best.textContent = S.best;
 drawLives();
+// el estado de silencio se conserva entre recargas
+if(AU.muted){
+  ui.mute.textContent = '🔇';
+  ui.mute.setAttribute('aria-pressed','true');
+  ui.mute.setAttribute('aria-label','Activar sonido');
+}
 show('menu');
 
 // Gancho de depuración / API (útil para pruebas y tweaked de balance)
 window.NeonSlice = {
   state:S, fruits, start:startGame, pause:pauseGame, resume:resumeGame,
+  get pointer(){ return { id:pointerId, active:swipeActive, cuts:swipeCuts, lastCut:lastCut }; },
   tick(dt){ update(dt); },
   draw(){ render(); },
   swipe(){ endSwipe(); },
@@ -1057,6 +1160,8 @@ window.NeonSlice = {
   cut(f){ cutFruit(f); },
   score(n){ S.score += n||100; },
   frenzy(t){ S.frenzy = t||FRENZY_TIME; },
+  lives(n){ S.lives = n; drawLives(); },
+  clearBest(){ try{ localStorage.removeItem(BEST_KEY); }catch(e){} S.best=0; ui.best.textContent=0; },
   end(){ gameOver(); },
 };
 
